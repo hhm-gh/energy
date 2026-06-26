@@ -107,10 +107,12 @@ def download(client: EIAClient, path: str, frequency: str | None = None) -> Path
 
     df = pd.concat(pages, ignore_index=True)
 
-    # Coerce numeric columns
+    # Coerce data columns to numeric where possible; leave strings as-is
     for col in data_cols:
         if col in df.columns:
-            df[col] = pd.to_numeric(df[col], errors="ignore")
+            converted = pd.to_numeric(df[col], errors="coerce")
+            if converted.notna().sum() > 0:
+                df[col] = converted
 
     parquet_path = dataset_dir / "data.parquet"
     df.to_parquet(parquet_path, index=False)
