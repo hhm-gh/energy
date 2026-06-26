@@ -1,12 +1,15 @@
 # energy
 
-A CLI for exploring and querying U.S. energy data via the [EIA Open Data API v2](https://www.eia.gov/opendata/).
+Tools for exploring and analyzing U.S. energy data from the [EIA Open Data API v2](https://www.eia.gov/opendata/).
+
+**App 1 — Python CLI** (`energy`): browse the EIA dataset catalog and download datasets locally.  
+**App 2 — R/Shiny** (`r/app.R`): interactive visualization of downloaded data in RStudio.
 
 ## Setup
 
-**1. Get an API key**
+**1. Get an EIA API key** (free)
 
-Register for free at [eia.gov/opendata/register.php](https://www.eia.gov/opendata/register.php).
+Register at [eia.gov/opendata/register.php](https://www.eia.gov/opendata/register.php).
 
 **2. Store the key in macOS Keychain**
 
@@ -14,9 +17,9 @@ Register for free at [eia.gov/opendata/register.php](https://www.eia.gov/opendat
 security add-generic-password -a eia -s eia-api-key -w YOUR_KEY
 ```
 
-To rotate: add the `-U` (update) flag to the same command.
+To rotate: add `-U` to the same command.
 
-**3. Install**
+**3. Install Python dependencies**
 
 ```bash
 python3 -m venv .venv
@@ -24,19 +27,34 @@ source .venv/bin/activate
 pip install -e .
 ```
 
-## Usage
+**4. Install R dependencies** (in RStudio)
 
-```bash
-energy inventory                          # dataset tree (2 levels deep)
-energy inventory --depth 3               # go deeper
-energy inventory --path electricity      # drill into one category
-energy inventory --descriptions          # include dataset descriptions
-energy inventory --flat                  # flat list of queryable endpoints
+```r
+# Open r/energy.Rproj, then run once:
+source("setup.R")
 ```
 
-## Dataset Coverage
+## App 1 — CLI usage
 
-The EIA API covers:
+```bash
+energy inventory                          # browse all datasets (tree view)
+energy inventory --path electricity       # drill into a category
+energy inventory --descriptions           # show dataset descriptions
+energy inventory --flat                   # flat list of queryable endpoints
+
+energy download electricity/retail-sales  # download dataset → local Parquet
+energy download <path> --frequency annual # specify frequency
+
+energy status                             # show locally downloaded datasets
+```
+
+## App 2 — Shiny app
+
+Open `r/energy.Rproj` in RStudio and click **Run App** on `app.R`.
+
+Current app: electricity rates by state — box-and-whisker plot with selectable states and sector filter, sourced from `electricity/retail-sales` monthly data (2001–present).
+
+## Dataset Coverage
 
 | Category | Examples |
 |----------|---------|
@@ -54,10 +72,11 @@ The EIA API covers:
 ## Project Structure
 
 ```
-eia/
-  client.py      HTTP client — Keychain auth, error handling
-  inventory.py   Recursive route traversal, rich tree display
-  cli.py         CLI entry point (argparse)
-main.py          Dev shim (python main.py also works)
-pyproject.toml   Package definition and script entry point
+eia/                Python package — API client, inventory, downloader, CLI
+  NOTES.md          Developer notes: commands, API quirks, storage layout
+r/                  RStudio project — Shiny visualization app
+  NOTES.md          Developer notes: launch steps, data path convention
+data/               Local dataset storage (gitignored, written by CLI)
+main.py             Dev shim (python main.py also works)
+pyproject.toml      Package definition → energy command
 ```
