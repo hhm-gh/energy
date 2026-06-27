@@ -27,7 +27,23 @@ energy schema <path> --refresh              # re-fetch from API and recompute lo
 | `inventory.py` | Recursive route traversal, rich tree display |
 | `downloader.py` | Paginated fetch → Parquet, catalog management |
 | `schema.py` | Schema fetch, local stat computation, display, caching |
+| `storage.py` | Storage abstraction — `LocalStorage` (default) and `GCSStorage` (Phase 2 stub) |
 | `cli.py` | argparse entry point for all commands |
+
+## Storage abstraction (`storage.py`)
+
+`downloader.py` and `schema.py` accept a `Storage` instance rather than a hard-coded path. This makes the storage backend swappable without touching business logic.
+
+```python
+class Storage(Protocol):
+    def read_text(self, key: str) -> str: ...
+    def write_text(self, key: str, content: str) -> None: ...
+    def exists(self, key: str) -> bool: ...
+    def find(self, filename: str) -> list[str]: ...   # returns relative key strings
+    def uri(self, key: str) -> str: ...               # absolute path or gs://... URI
+```
+
+`LocalStorage("data")` is the default, constructed once at module level via `default_storage()`. `GCSStorage(bucket, prefix)` is the Phase 2 stub — `uri()` returns a `gs://` URI that pandas/pyarrow accept natively via gcsfs/fsspec.
 
 ## EIA API v2
 

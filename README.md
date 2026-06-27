@@ -2,8 +2,19 @@
 
 Tools for exploring and analyzing U.S. energy data from the [EIA Open Data API v2](https://www.eia.gov/opendata/).
 
-**App 1 — Python CLI** (`energy`): browse the EIA dataset catalog and download datasets locally.  
-**App 2 — R/Shiny** (`r/app.R`): interactive visualization of downloaded data in RStudio.
+## Overview
+
+Three separate apps share a common Python core (`eia/`) that handles all API access and local data storage:
+
+| App | Command | Status |
+|-----|---------|--------|
+| CLI | `energy` | Available |
+| TUI | `energy-tui` | Planned — Phase 1 |
+| R Analysis | RStudio → `r/app.R` | Available |
+
+Data flows one way: CLI/TUI download from EIA API → local Parquet files → R reads locally.
+
+---
 
 ## Setup
 
@@ -24,17 +35,21 @@ To rotate: add `-U` to the same command.
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -e .
+pip install -e .          # CLI only
+pip install -e ".[tui]"   # CLI + TUI (once TUI is built)
 ```
 
-**4. Install R dependencies** (in RStudio)
+**4. Install R dependencies** (in RStudio, once)
 
 ```r
-# Open r/energy.Rproj, then run once:
 source("setup.R")
 ```
 
-## App 1 — CLI usage
+---
+
+# CLI
+
+The `energy` command browses the EIA dataset catalog, downloads datasets to local Parquet files, and displays schema summaries.
 
 **`energy inventory`** — browse the EIA dataset tree
 
@@ -63,17 +78,42 @@ energy status
 
 ```bash
 energy schema                             # list all locally known paths
-energy schema electricity/retail-sales   # full schema for a specific dataset
-energy schema <path> --refresh           # re-fetch from API and recompute stats
+energy schema electricity/retail-sales    # full schema for a specific dataset
+energy schema <path> --refresh            # re-fetch from API and recompute stats
 ```
 
 Schema shows column min/max/mean with and without zeros — zero values in EIA data indicate missing or not-applicable rather than a genuine zero rate.
 
-## App 2 — Shiny app
+---
 
-Open `r/energy.Rproj` in RStudio and click **Run App** on `app.R`.
+# TUI
 
-Current app: electricity rates by state — box-and-whisker plot with selectable states and sector filter, sourced from `electricity/retail-sales` monthly data (2001–present).
+> **Status: Phase 1 — planned, not yet built.** See `GUI-PLAN.md` for the full design.
+
+The `energy-tui` command will provide an interactive terminal UI for the same functions available in the CLI: browsing the dataset tree, viewing schema summaries, and selecting multiple datasets for download with real-time progress display.
+
+Built with [Textual](https://textual.textualize.io/). Install when available:
+
+```bash
+pip install -e ".[tui]"
+energy-tui
+```
+
+---
+
+# R Analysis App
+
+Interactive visualization of locally downloaded datasets in RStudio.
+
+**Launch:**
+
+1. Open `r/energy.Rproj` in RStudio
+2. Run `source("setup.R")` once to install packages
+3. Open `app.R` → click **Run App**
+
+**Current app:** electricity rates by state — box-and-whisker plot with selectable states (all 62 states/territories) and sector filter, sourced from `electricity/retail-sales` monthly data (2001–present).
+
+---
 
 ## Dataset Coverage
 
@@ -93,11 +133,18 @@ Current app: electricity rates by state — box-and-whisker plot with selectable
 ## Project Structure
 
 ```
-eia/                Python package — API client, inventory, downloader, CLI
-  NOTES.md          Developer notes: commands, API quirks, storage layout
-r/                  RStudio project — Shiny visualization app
-  NOTES.md          Developer notes: launch steps, data path convention
-data/               Local dataset storage (gitignored, written by CLI)
-main.py             Dev shim (python main.py also works)
-pyproject.toml      Package definition → energy command
+eia/                Python core — shared by CLI and TUI
+  storage.py        Storage abstraction (LocalStorage / GCSStorage for Phase 2)
+  client.py         EIA API client
+  inventory.py      Dataset tree traversal
+  downloader.py     Paginated download → Parquet
+  schema.py         Schema fetch, stats, caching
+  cli.py            CLI entry point
+  NOTES.md          Developer notes
+tui/                TUI app — Phase 1 (not yet built)
+r/                  R/Shiny analysis app
+  NOTES.md          Developer notes
+data/               Local dataset storage (gitignored)
+GUI-PLAN.md         TUI and browser GUI roadmap
+TESTING.md          Test design and results
 ```
