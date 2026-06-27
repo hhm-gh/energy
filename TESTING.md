@@ -60,10 +60,10 @@ pytest -m api         # all tests, including live API calls (~45s)
 
 ```
 pytest -m "not api"
-11 passed in 2.85s
+11 passed in 1.66s
 
 pytest -m api
-9 passed in 43.44s
+9 passed in 41.03s
 
 Total: 20 passed, 0 failed
 ```

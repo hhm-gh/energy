@@ -11,34 +11,28 @@ from __future__ import annotations
 
 import json
 from datetime import datetime, timezone
-from pathlib import Path
 
 import pandas as pd
 from rich.console import Console
 from rich.progress import BarColumn, Progress, TaskProgressColumn, TextColumn, TimeElapsedColumn
 
 from .client import EIAClient
+from .storage import Storage, default_storage
 
-DATA_ROOT = Path("data")
-CATALOG_FILE = DATA_ROOT / "catalog.json"
 PAGE_SIZE = 5000
+CATALOG_KEY = "catalog.json"
 
 console = Console()
 
 
-def _dataset_dir(path: str) -> Path:
-    return DATA_ROOT / path
-
-
-def _load_catalog() -> dict:
-    if CATALOG_FILE.exists():
-        return json.loads(CATALOG_FILE.read_text())
+def _load_catalog(storage: Storage) -> dict:
+    if storage.exists(CATALOG_KEY):
+        return json.loads(storage.read_text(CATALOG_KEY))
     return {}
 
 
-def _save_catalog(catalog: dict) -> None:
-    CATALOG_FILE.parent.mkdir(parents=True, exist_ok=True)
-    CATALOG_FILE.write_text(json.dumps(catalog, indent=2))
+def _save_catalog(catalog: dict, storage: Storage) -> None:
+    storage.write_text(CATALOG_KEY, json.dumps(catalog, indent=2))
 
 
 def fetch_dataset_metadata(client: EIAClient, path: str) -> dict:
@@ -46,14 +40,20 @@ def fetch_dataset_metadata(client: EIAClient, path: str) -> dict:
     return client.get(path)
 
 
-def download(client: EIAClient, path: str, frequency: str | None = None) -> Path:
+def download(
+    client: EIAClient,
+    path: str,
+    frequency: str | None = None,
+    storage: Storage | None = None,
+) -> str:
     """
     Download all records for a dataset and save as Parquet.
-    Returns the path to the saved Parquet file.
+    Returns the storage URI of the saved Parquet file.
     """
+    if storage is None:
+        storage = default_storage()
+
     meta = fetch_dataset_metadata(client, path)
-    dataset_dir = _dataset_dir(path)
-    dataset_dir.mkdir(parents=True, exist_ok=True)
 
     # Pick frequency: use provided, else first available
     freqs = meta.get("frequency", [])
@@ -80,9 +80,11 @@ def download(client: EIAClient, path: str, frequency: str | None = None) -> Path
     probe = client.get(f"{path}/data", **{**params, "length": 1, "offset": 0})
     total = int(probe.get("total", 0))
 
+    parquet_key = f"{path}/data.parquet"
+
     if total == 0:
         console.print(f"[yellow]No data returned for {path}[/yellow]")
-        return dataset_dir / "data.parquet"
+        return storage.uri(parquet_key)
 
     console.print(f"Downloading [bold]{meta.get('name', path)}[/bold] — {total:,} rows")
 
@@ -114,8 +116,7 @@ def download(client: EIAClient, path: str, frequency: str | None = None) -> Path
             if converted.notna().sum() > 0:
                 df[col] = converted
 
-    parquet_path = dataset_dir / "data.parquet"
-    df.to_parquet(parquet_path, index=False)
+    df.to_parquet(storage.uri(parquet_key), index=False)
 
     # Save metadata alongside data
     meta_snapshot = {
@@ -128,14 +129,14 @@ def download(client: EIAClient, path: str, frequency: str | None = None) -> Path
         "rows": len(df),
         "downloaded_at": datetime.now(timezone.utc).isoformat(),
     }
-    (dataset_dir / "metadata.json").write_text(json.dumps(meta_snapshot, indent=2))
+    storage.write_text(f"{path}/metadata.json", json.dumps(meta_snapshot, indent=2))
 
     # Build and cache schema (API metadata + computed local stats) in one shot
     from .schema import load_or_fetch
-    load_or_fetch(client=None, path=path, refresh=True)
+    load_or_fetch(client=None, path=path, refresh=True, storage=storage)
 
     # Update catalog
-    catalog = _load_catalog()
+    catalog = _load_catalog(storage)
     catalog[path] = {
         "name": meta.get("name", path),
         "rows": len(df),
@@ -143,17 +144,20 @@ def download(client: EIAClient, path: str, frequency: str | None = None) -> Path
         "downloaded_at": meta_snapshot["downloaded_at"],
         "schema_cached": True,
     }
-    _save_catalog(catalog)
+    _save_catalog(catalog, storage)
 
-    console.print(f"[green]Saved {len(df):,} rows → {parquet_path}[/green]")
-    return parquet_path
+    console.print(f"[green]Saved {len(df):,} rows → {storage.uri(parquet_key)}[/green]")
+    return storage.uri(parquet_key)
 
 
-def status() -> None:
+def status(storage: Storage | None = None) -> None:
     """Print a table of all locally downloaded datasets."""
     from rich.table import Table
 
-    catalog = _load_catalog()
+    if storage is None:
+        storage = default_storage()
+
+    catalog = _load_catalog(storage)
     if not catalog:
         console.print("[dim]No datasets downloaded yet. Run: energy download <path>[/dim]")
         return
