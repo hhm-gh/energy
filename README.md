@@ -36,17 +36,38 @@ source("setup.R")
 
 ## App 1 — CLI usage
 
+**`energy inventory`** — browse the EIA dataset tree
+
 ```bash
-energy inventory                          # browse all datasets (tree view)
+energy inventory                          # 2-level tree of all datasets
 energy inventory --path electricity       # drill into a category
-energy inventory --descriptions           # show dataset descriptions
+energy inventory --depth 3               # go deeper (more API calls)
+energy inventory --descriptions           # include dataset descriptions
 energy inventory --flat                   # flat list of queryable endpoints
-
-energy download electricity/retail-sales  # download dataset → local Parquet
-energy download <path> --frequency annual # specify frequency
-
-energy status                             # show locally downloaded datasets
 ```
+
+**`energy download`** — fetch a dataset from the API and save locally as Parquet
+
+```bash
+energy download electricity/retail-sales  # download all rows
+energy download <path> --frequency annual # specify frequency (default: first available)
+```
+
+**`energy status`** — table of all locally downloaded datasets
+
+```bash
+energy status
+```
+
+**`energy schema`** — dataset structure, column units, value ranges, and facet values
+
+```bash
+energy schema                             # list all locally known paths
+energy schema electricity/retail-sales   # full schema for a specific dataset
+energy schema <path> --refresh           # re-fetch from API and recompute stats
+```
+
+Schema shows column min/max/mean with and without zeros — zero values in EIA data indicate missing or not-applicable rather than a genuine zero rate.
 
 ## App 2 — Shiny app
 
