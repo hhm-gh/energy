@@ -38,27 +38,54 @@ The `eia/` package is the stable core — all business logic lives there and car
 | Multi-select download | Checkbox nodes + download queue, progress per dataset |
 | Download status | Textual `ProgressBar` per dataset, status in footer |
 
-### File layout
+### Code separation
+
+`gui/` is a sibling package to `eia/`, not nested inside it. `eia/` has no knowledge of `gui/` — the dependency is strictly one-way: `gui/` imports from `eia/`, never the reverse.
 
 ```
-gui/
-  app.py          Textual app entry point
+eia/                ← core business logic (unchanged)
+  client.py
+  inventory.py
+  downloader.py
+  schema.py
+  storage.py        ← storage abstraction (see below)
+  cli.py            ← CLI adapter, stays here
+
+gui/                ← TUI package
+  __init__.py
+  app.py            ← Textual app entry point
   screens/
-    browser.py    Main screen — tree + schema panel
-    download.py   Download queue screen
+    browser.py      ← dataset tree + schema panel
+    download.py     ← download queue
   widgets/
-    tree.py       EIA route tree widget
-    schema.py     Schema/summary display widget
-    progress.py   Per-dataset download progress
+    tree.py         ← EIA route tree widget
+    schema.py       ← schema/summary display
+    progress.py     ← per-dataset download progress
+
+tests/
+  test_inventory.py
+  test_schema.py
+  test_gui.py       ← TUI regression tests, added in Phase 1
 ```
 
-Add `textual` to `pyproject.toml` dependencies and a new script entry point:
+`textual` is an optional dependency — installing the base package gives the CLI only:
 
 ```toml
 [project.scripts]
 energy     = "eia.cli:main"
 energy-gui = "gui.app:main"
+
+[project.optional-dependencies]
+gui = ["textual>=1.0"]
+dev = ["pytest>=8.0"]
 ```
+
+```bash
+pip install -e .          # CLI only
+pip install -e ".[gui]"   # CLI + TUI
+```
+
+The note on `eia/cli.py`: it is a UI adapter living inside the business logic package, which is a slight blurring of the boundary. Acceptable for now; it could move to a top-level `cli/` package later if the project grows, but not worth the churn at this stage.
 
 ### Critical design decision — storage abstraction
 
