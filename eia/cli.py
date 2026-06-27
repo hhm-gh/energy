@@ -47,7 +47,11 @@ def cmd_status(_args: argparse.Namespace) -> None:
 
 
 def cmd_schema(args: argparse.Namespace) -> None:
-    from .schema import load_or_fetch, print_schema
+    from .schema import load_or_fetch, print_paths, print_schema
+
+    if not args.path:
+        print_paths()
+        return
 
     # Client only needed if schema isn't cached yet
     try:
@@ -85,8 +89,8 @@ def main() -> None:
 
     sub.add_parser("status", help="Show locally downloaded datasets")
 
-    sc = sub.add_parser("schema", help="Show schema and summary for a dataset")
-    sc.add_argument("path", help="Dataset path, e.g. 'electricity/retail-sales'")
+    sc = sub.add_parser("schema", help="Show schema and summary for a dataset (no path = list all known)")
+    sc.add_argument("path", nargs="?", default=None, help="Dataset path, e.g. 'electricity/retail-sales' (omit to list all known paths)")
     sc.add_argument("--refresh", action="store_true", help="Re-fetch from API even if cached")
     sc.add_argument("--api-key", default=None, help="EIA API key")
 

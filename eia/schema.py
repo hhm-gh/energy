@@ -137,6 +137,60 @@ def load_or_fetch(client: EIAClient | None, path: str, refresh: bool = False) ->
     return schema
 
 
+# ── Path listing ─────────────────────────────────────────────────────────────
+
+def print_paths() -> None:
+    """List all paths with a locally cached schema, grouped by download status."""
+    if not DATA_ROOT.exists():
+        console.print("[dim]No local data yet. Run: energy download <path>[/dim]")
+        console.print("[dim]To see all available paths: energy inventory --flat[/dim]")
+        return
+
+    # Collect every schema.json found under data/
+    entries = []
+    for schema_file in sorted(DATA_ROOT.rglob("schema.json")):
+        rel = schema_file.parent.relative_to(DATA_ROOT)
+        path = str(rel)
+        parquet = (schema_file.parent / "data.parquet").exists()
+        try:
+            meta = json.loads(schema_file.read_text())
+            name = meta.get("name", path)
+            freqs = ", ".join(f["id"] for f in meta.get("frequencies", []))
+            local = meta.get("local_stats", {})
+            rows = f"{local['rows']:,}" if local.get("rows") else "—"
+            period = (
+                f"{local['period_actual_start']} → {local['period_actual_end']}"
+                if local.get("period_actual_start") else
+                f"{meta.get('period_start', '')} → {meta.get('period_end', '')} [dim](API)[/dim]"
+                if meta.get("period_start") else "—"
+            )
+        except Exception:
+            name, freqs, rows, period = path, "—", "—", "—"
+
+        entries.append((parquet, path, name, freqs, rows, period))
+
+    if not entries:
+        console.print("[dim]No cached schemas yet.[/dim]")
+        console.print("[dim]Run: energy schema <path>  or  energy download <path>[/dim]")
+        console.print("[dim]To see all available paths: energy inventory --flat[/dim]")
+        return
+
+    console.print("\n[bold]Known dataset paths[/bold]  "
+                  "[dim]● downloaded   ○ schema cached (not downloaded)[/dim]\n")
+    for downloaded, path, name, freqs, rows, period in entries:
+        marker = "[green]●[/green]" if downloaded else "[yellow]○[/yellow]"
+        detail_parts = []
+        if freqs:
+            detail_parts.append(freqs)
+        if rows != "—":
+            detail_parts.append(f"{rows} rows")
+        detail = "   [dim]" + "   ".join(detail_parts) + "[/dim]" if detail_parts else ""
+        console.print(f"  {marker} [bold green]{path}[/bold green]   {name}{detail}",
+                      no_wrap=True, overflow="ellipsis")
+
+    console.print("\n[dim]For all EIA routes: energy inventory --flat[/dim]")
+
+
 # ── Display ───────────────────────────────────────────────────────────────────
 
 def print_schema(path: str, schema: dict) -> None:
