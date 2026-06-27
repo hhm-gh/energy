@@ -74,10 +74,10 @@ def _compute_local_stats(path: str, schema: dict) -> dict:
             s = df[col].dropna()
             if len(s):
                 col_stats[col] = {
-                    "min":    round(float(s.min()), 4),
-                    "max":    round(float(s.max()), 4),
-                    "mean":   round(float(s.mean()), 4),
-                    "median": round(float(s.median()), 4),
+                    "min":    round(float(s.min())),
+                    "max":    round(float(s.max())),
+                    "mean":   round(float(s.mean())),
+                    "median": round(float(s.median())),
                 }
     stats["column_stats"] = col_stats
 
