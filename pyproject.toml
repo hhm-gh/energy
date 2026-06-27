@@ -15,13 +15,15 @@ dependencies = [
 ]
 
 [project.scripts]
-energy = "eia.cli:main"
+energy     = "eia.cli:main"
+energy-tui = "tui.app:main"
 
 [project.optional-dependencies]
+tui = ["textual>=1.0"]
 dev = ["pytest>=8.0"]
 
 [tool.pytest.ini_options]
 markers = ["api: requires live EIA API access"]
 
 [tool.hatch.build.targets.wheel]
-packages = ["eia"]
+packages = ["eia", "tui"]
