@@ -15,6 +15,17 @@
 | `setup.R` | One-time package install via renv |
 | `energy.Rproj` | RStudio project file |
 
+## Dataset metadata in R
+
+Before visualizing a new dataset, run `energy schema <path>` from the terminal to see column names, units, value ranges, and available facet values. The output is also cached to `data/{path}/schema.json` and readable in R:
+
+```r
+schema <- jsonlite::fromJSON(file.path(DATA_ROOT, "electricity/retail-sales/schema.json"))
+schema$columns      # column names and units
+schema$facets       # available dimensions
+schema$local_stats  # value ranges, unique facet values (populated after download)
+```
+
 ## Data path convention
 
 The `data/` directory lives at the repo root, one level above `r/`. All R files resolve it as:

@@ -13,6 +13,9 @@ energy download electricity/retail-sales    # download all rows → Parquet
 energy download <path> --frequency annual   # override default frequency
 
 energy status                               # table of locally downloaded datasets
+
+energy schema electricity/retail-sales      # schema + summary (fetches from API if not cached)
+energy schema <path> --refresh              # re-fetch from API and recompute local stats
 ```
 
 ## Modules
@@ -22,6 +25,7 @@ energy status                               # table of locally downloaded datase
 | `client.py` | `EIAClient` — auth, HTTP, error handling |
 | `inventory.py` | Recursive route traversal, rich tree display |
 | `downloader.py` | Paginated fetch → Parquet, catalog management |
+| `schema.py` | Schema fetch, local stat computation, display, caching |
 | `cli.py` | argparse entry point for all commands |
 
 ## EIA API v2
@@ -41,7 +45,14 @@ data/
     retail-sales/
       data.parquet              all rows, numeric data columns coerced to float
       metadata.json             name, frequency, facets, row count, downloaded_at
+      schema.json               cached schema — API metadata + computed local stats
 ```
+
+`schema.json` is written in two situations: (1) by `energy schema <path>` on first call, and (2) automatically at the end of every `energy download`. It contains:
+- API-sourced: name, description, frequencies, facets (id + description), column names and units, period bounds
+- Computed from Parquet (if downloaded): actual period span, row count, per-column min/max/mean/median, unique facet values with human-readable labels
+
+Facet description columns follow no consistent EIA naming pattern. The schema module tries `{root}Description` then `{root}Name` (where root strips a trailing `id`), e.g. `stateid` → `stateDescription`, `sectorid` → `sectorName`.
 
 ## Known quirks
 
