@@ -17,5 +17,11 @@ dependencies = [
 [project.scripts]
 energy = "eia.cli:main"
 
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[tool.pytest.ini_options]
+markers = ["api: requires live EIA API access"]
+
 [tool.hatch.build.targets.wheel]
 packages = ["eia"]
