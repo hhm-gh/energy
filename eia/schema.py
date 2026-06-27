@@ -72,12 +72,15 @@ def _compute_local_stats(path: str, schema: dict) -> dict:
     for col in schema.get("columns", {}):
         if col in df.columns and pd.api.types.is_numeric_dtype(df[col]):
             s = df[col].dropna()
+            nz = s[s > 0]
             if len(s):
                 col_stats[col] = {
-                    "min":    round(float(s.min())),
-                    "max":    round(float(s.max())),
-                    "mean":   round(float(s.mean())),
-                    "median": round(float(s.median())),
+                    "min":        round(float(s.min())),
+                    "max":        round(float(s.max())),
+                    "mean":       round(float(s.mean())),
+                    "median":     round(float(s.median())),
+                    "min_nz":     round(float(nz.min())) if len(nz) else None,
+                    "mean_nz":    round(float(nz.mean())) if len(nz) else None,
                 }
     stats["column_stats"] = col_stats
 
@@ -218,17 +221,21 @@ def print_schema(path: str, schema: dict) -> None:
 
     # Data columns
     console.print()
-    col_table = Table("Column", "Units", "Min", "Max", "Mean",
+    col_table = Table("Column", "Units", "Min", "Max", "Mean", "Min (>0)", "Mean (>0)",
                       box=box.SIMPLE, show_header=True, header_style="bold")
     col_stats = local.get("column_stats", {})
     for col_id, col_meta in schema.get("columns", {}).items():
         units = col_meta.get("units", "—") if isinstance(col_meta, dict) else "—"
         if col_id in col_stats:
             s = col_stats[col_id]
-            col_table.add_row(col_id, units,
-                              str(s["min"]), str(s["max"]), str(s["mean"]))
+            col_table.add_row(
+                col_id, units,
+                str(s["min"]), str(s["max"]), str(s["mean"]),
+                str(s["min_nz"]) if s["min_nz"] is not None else "—",
+                str(s["mean_nz"]) if s["mean_nz"] is not None else "—",
+            )
         else:
-            col_table.add_row(col_id, units, "—", "—", "—")
+            col_table.add_row(col_id, units, "—", "—", "—", "—", "—")
     console.print(col_table)
 
     # Facets
