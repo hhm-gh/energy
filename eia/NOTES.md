@@ -14,6 +14,7 @@ energy download <path> --frequency annual   # override default frequency
 
 energy status                               # table of locally downloaded datasets
 
+energy schema                               # list all locally known paths (downloaded ● or schema-cached ○)
 energy schema electricity/retail-sales      # schema + summary (fetches from API if not cached)
 energy schema <path> --refresh              # re-fetch from API and recompute local stats
 ```
@@ -50,7 +51,11 @@ data/
 
 `schema.json` is written in two situations: (1) by `energy schema <path>` on first call, and (2) automatically at the end of every `energy download`. It contains:
 - API-sourced: name, description, frequencies, facets (id + description), column names and units, period bounds
-- Computed from Parquet (if downloaded): actual period span, row count, per-column min/max/mean/median, unique facet values with human-readable labels
+- Computed from Parquet (if downloaded): actual period span, row count, per-column stats, unique facet values with human-readable labels
+
+Numeric stats include both raw values and non-zero values (`min_nz`, `mean_nz`). Zero values in EIA data typically mean missing or not-applicable — sectors like transportation often have no reported rate — so raw means and minimums are misleading without filtering. The `Min (>0)` and `Mean (>0)` columns in the schema display make this visible. Note: `min_nz` can display as `0` for columns where the smallest non-zero value rounds down to zero (a rounding artifact, not a true zero).
+
+Numbers in the schema display are rounded to the nearest integer and formatted with compact notation for large values (e.g., `166.4M`, `59k`).
 
 Facet description columns follow no consistent EIA naming pattern. The schema module tries `{root}Description` then `{root}Name` (where root strips a trailing `id`), e.g. `stateid` → `stateDescription`, `sectorid` → `sectorName`.
 

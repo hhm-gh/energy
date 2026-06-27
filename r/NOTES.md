@@ -42,6 +42,7 @@ This works because RStudio sets `getwd()` to the `.Rproj` directory (`r/`) on pr
 - State checklist: scrollable, all 62 states/territories, **All** / **Clear** buttons
 - Box plot sorted by median price (highest at top), monthly data 2001–present
 - Source: `data/electricity/retail-sales/data.parquet`
+- Data is pre-filtered to `price > 0` — zero values in EIA retail sales indicate missing/not-applicable (common in the transportation sector), not genuine zero-rate electricity
 
 ## Packages
 

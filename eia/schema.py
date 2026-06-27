@@ -221,8 +221,23 @@ def print_schema(path: str, schema: dict) -> None:
 
     # Data columns
     console.print()
-    col_table = Table("Column", "Units", "Min", "Max", "Mean", "Min (>0)", "Mean (>0)",
-                      box=box.SIMPLE, show_header=True, header_style="bold")
+    def _fmt(v: int | None) -> str:
+        if v is None:
+            return "—"
+        if abs(v) >= 1_000_000:
+            return f"{v / 1_000_000:.1f}M"
+        if abs(v) >= 10_000:
+            return f"{v / 1_000:.0f}k"
+        return f"{v:,}"
+
+    col_table = Table(box=box.SIMPLE, show_header=True, header_style="bold")
+    col_table.add_column("Column", no_wrap=True, min_width=10)
+    col_table.add_column("Units", no_wrap=True)
+    col_table.add_column("Min", justify="right")
+    col_table.add_column("Max", justify="right")
+    col_table.add_column("Mean", justify="right")
+    col_table.add_column("Min (>0)", justify="right")
+    col_table.add_column("Mean (>0)", justify="right")
     col_stats = local.get("column_stats", {})
     for col_id, col_meta in schema.get("columns", {}).items():
         units = col_meta.get("units", "—") if isinstance(col_meta, dict) else "—"
@@ -230,9 +245,8 @@ def print_schema(path: str, schema: dict) -> None:
             s = col_stats[col_id]
             col_table.add_row(
                 col_id, units,
-                str(s["min"]), str(s["max"]), str(s["mean"]),
-                str(s["min_nz"]) if s["min_nz"] is not None else "—",
-                str(s["mean_nz"]) if s["mean_nz"] is not None else "—",
+                _fmt(s["min"]), _fmt(s["max"]), _fmt(s["mean"]),
+                _fmt(s["min_nz"]), _fmt(s["mean_nz"]),
             )
         else:
             col_table.add_row(col_id, units, "—", "—", "—", "—", "—")
