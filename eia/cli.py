@@ -46,6 +46,24 @@ def cmd_status(_args: argparse.Namespace) -> None:
     status()
 
 
+def cmd_schema(args: argparse.Namespace) -> None:
+    from .schema import load_or_fetch, print_schema
+
+    # Client only needed if schema isn't cached yet
+    try:
+        client = EIAClient(api_key=args.api_key)
+    except EIAError as e:
+        client = None  # will fail gracefully inside load_or_fetch if cache missing
+
+    try:
+        schema = load_or_fetch(client, args.path, refresh=args.refresh)
+    except (EIAError, ValueError) as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
+
+    print_schema(args.path, schema)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         prog="energy",
@@ -67,6 +85,11 @@ def main() -> None:
 
     sub.add_parser("status", help="Show locally downloaded datasets")
 
+    sc = sub.add_parser("schema", help="Show schema and summary for a dataset")
+    sc.add_argument("path", help="Dataset path, e.g. 'electricity/retail-sales'")
+    sc.add_argument("--refresh", action="store_true", help="Re-fetch from API even if cached")
+    sc.add_argument("--api-key", default=None, help="EIA API key")
+
     args = parser.parse_args()
 
     if args.command == "inventory":
@@ -75,6 +98,8 @@ def main() -> None:
         cmd_download(args)
     elif args.command == "status":
         cmd_status(args)
+    elif args.command == "schema":
+        cmd_schema(args)
 
 
 if __name__ == "__main__":

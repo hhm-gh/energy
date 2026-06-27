@@ -130,6 +130,10 @@ def download(client: EIAClient, path: str, frequency: str | None = None) -> Path
     }
     (dataset_dir / "metadata.json").write_text(json.dumps(meta_snapshot, indent=2))
 
+    # Build and cache schema (API metadata + computed local stats) in one shot
+    from .schema import load_or_fetch
+    load_or_fetch(client=None, path=path, refresh=True)
+
     # Update catalog
     catalog = _load_catalog()
     catalog[path] = {
@@ -137,6 +141,7 @@ def download(client: EIAClient, path: str, frequency: str | None = None) -> Path
         "rows": len(df),
         "frequency": frequency,
         "downloaded_at": meta_snapshot["downloaded_at"],
+        "schema_cached": True,
     }
     _save_catalog(catalog)
 
