@@ -68,6 +68,15 @@ pytest -m api
 Total: 20 passed, 0 failed
 ```
 
+## Not yet covered
+
+The following commands added after the last test run have no automated tests:
+
+| Command group | Notes |
+|--------------|-------|
+| `energy pub-list`, `pub-download`, `pub-status` | Excel publication commands — would benefit from a `tests/test_publications.py` with a local fixture xlsx and a live download test marked `@pytest.mark.api` |
+| `energy bulk-list` | Bulk manifest listing — network-dependent; a `@pytest.mark.api` test asserting known dataset IDs (e.g. `ELEC`, `NG`) appear in output would suffice |
+
 ## Notes
 
 - Rich wraps long column headers across lines in narrow terminals. Tests check for sub-strings (e.g. `"(>0)"`) rather than full header strings to avoid brittle terminal-width dependencies.
