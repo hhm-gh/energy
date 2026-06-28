@@ -188,7 +188,7 @@ The CLI commands continue to work throughout both phases. In Phase 1 they use `L
 ## Sequencing
 
 ```
-Now         Introduce Storage abstraction, refactor downloader + schema to use it
-Phase 1     Build TUI (energy-tui command)  ←── current focus
-Phase 2     Browser GUI — web/api/ + web/frontend/ + GCS + Cloud Run
+Done        Storage abstraction (eia/storage.py)
+Done        Phase 1 TUI (energy-tui command, tui/app.py)
+Phase 2     Browser GUI — web/api/ + web/frontend/ + GCS + Cloud Run  ←── next
 ```

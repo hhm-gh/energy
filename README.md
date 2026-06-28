@@ -9,7 +9,7 @@ Three separate apps share a common Python core (`eia/`) that handles all API acc
 | App | Command | Status |
 |-----|---------|--------|
 | CLI | `energy` | Available |
-| TUI | `energy-tui` | Planned — Phase 1 |
+| TUI | `energy-tui` | Available |
 | R Analysis | RStudio → `r/app.R` | Available |
 
 Data flows one way: CLI/TUI download from EIA API → local Parquet files → R reads locally.
@@ -36,7 +36,7 @@ To rotate: add `-U` to the same command.
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -e .          # CLI only
-pip install -e ".[tui]"   # CLI + TUI (once TUI is built)
+pip install -e ".[tui]"   # CLI + TUI
 ```
 
 **4. Install R dependencies** (in RStudio, once)
@@ -88,11 +88,9 @@ Schema shows column min/max/mean with and without zeros — zero values in EIA d
 
 # TUI
 
-> **Status: Phase 1 — planned, not yet built.** See `GUI-PLAN.md` for the full design.
+Interactive terminal UI built with [Textual](https://textual.textualize.io/). Browse the EIA dataset tree, view schema summaries, and download datasets with live progress — all from the terminal.
 
-The `energy-tui` command will provide an interactive terminal UI for the same functions available in the CLI: browsing the dataset tree, viewing schema summaries, and selecting multiple datasets for download with real-time progress display.
-
-Built with [Textual](https://textual.textualize.io/). Install when available:
+Install and launch:
 
 ```bash
 pip install -e ".[tui]"
@@ -141,7 +139,7 @@ eia/                Python core — shared by CLI and TUI
   schema.py         Schema fetch, stats, caching
   cli.py            CLI entry point
   NOTES.md          Developer notes
-tui/                TUI app — Phase 1 (not yet built)
+tui/                TUI app (Textual) — lazy tree, schema panel, download queue
 r/                  R/Shiny analysis app
   NOTES.md          Developer notes
 data/               Local dataset storage (gitignored)
