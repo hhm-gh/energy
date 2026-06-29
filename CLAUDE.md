@@ -8,7 +8,7 @@ Three-app project for exploring and analyzing U.S. energy data from the EIA. Sup
 | TUI | `energy-tui` | Available |
 | R/Shiny | `r/app.R` in RStudio | Available |
 
-All apps share `eia/` — the Python core handles API access, Excel publication downloads, bulk file listing, local storage, and the storage abstraction.  
+All apps share `eia/` — the Python core handles API access, Excel publication downloads, bulk file download/parse, local storage, and the storage abstraction.  
 See `GUI-PLAN.md` for the TUI and browser GUI roadmap.
 
 ## Architecture
@@ -39,6 +39,7 @@ See `eia/NOTES.md` for Python CLI details and `r/NOTES.md` for the R app.
 | `eia/publications.py` | Excel publication listing and chapter-grouped display |
 | `eia/pub_downloader.py` | Excel download, best-effort parse → Parquet, parse quality tracking |
 | `eia/bulk.py` | Bulk manifest fetch and dataset listing |
+| `eia/bulk_downloader.py` | Bulk ZIP download → NDJSON, parse → Parquet, catalog management |
 | `eia/storage.py` | Storage abstraction — `LocalStorage` (default) and `GCSStorage` (Phase 2 stub) |
 | `eia/cli.py` | argparse entry point for all commands |
 
@@ -67,6 +68,9 @@ energy pub-status                   # show downloaded publication tables
 ```bash
 energy bulk-list                    # list all bulk datasets from live manifest
 energy bulk-list --aeo              # expand AEO year-vintages
+energy bulk-download EMISS          # download ZIP → data/bulk/EMISS/raw.ndjson
+energy bulk-parse EMISS             # parse NDJSON → 4 Parquet files
+energy bulk-status                  # show downloaded/parsed bulk datasets
 ```
 
 **R / Shiny**

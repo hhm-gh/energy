@@ -6,7 +6,7 @@ Tools for exploring and analyzing U.S. energy data from the EIA. Supports three 
 |--------|-----------|--------------|
 | **EIA Open Data API v2** | Live queryable series — electricity, gas, petroleum, coal, and more | `energy inventory`, `download`, `status`, `schema` |
 | **Excel Publications** | Annual summary reports as downloadable `.xlsx` files (Electric Power Annual) | `energy pub-list`, `pub-download`, `pub-status` |
-| **Bulk Files** | Complete dataset archives as ZIP files, updated twice daily | `energy bulk-list` |
+| **Bulk Files** | Complete dataset archives as ZIP files, updated twice daily | `energy bulk-list`, `bulk-download`, `bulk-parse`, `bulk-status` |
 
 ## Overview
 
@@ -133,6 +133,34 @@ energy bulk-list                          # collapsed view (AEO years summarized
 energy bulk-list --aeo                    # expand all Annual Energy Outlook vintages
 ```
 
+**`energy bulk-download`** — stream-download a bulk ZIP and extract to local NDJSON
+
+```bash
+energy bulk-download EMISS                # ~1 MB; good dataset to start with
+energy bulk-download ELEC                 # large (~300 MB)
+```
+
+**`energy bulk-parse`** — parse the downloaded NDJSON into Parquet files
+
+```bash
+energy bulk-parse EMISS
+```
+
+Produces four files in `data/bulk/<ID>/`:
+
+| File | Contents |
+|------|----------|
+| `series.parquet` | One row per (series_id, period, value) — the time-series data |
+| `series_meta.parquet` | One row per series — name, units, frequency, geography, period range |
+| `categories.parquet` | Category tree nodes — id, name, parent |
+| `category_series.parquet` | Junction table — which series belong to which category |
+
+**`energy bulk-status`** — table of all downloaded datasets with parsed/not-parsed indicator
+
+```bash
+energy bulk-status
+```
+
 **AEO (Annual Energy Outlook):** EIA's flagship long-range forecast, published annually, projecting U.S. energy production, consumption, and trade ~25 years out. The bulk manifest carries 12 separate year-vintage files (2014–2026) because each edition is a standalone snapshot of what EIA projected that year — not an update to a running dataset. Researchers use the vintages to compare how forecasts evolved over time.
 
 Available bulk datasets include: `ELEC`, `NG`, `PET`, `COAL`, `SEDS`, `STEO`, `TOTAL`, `INTL`, `EBA`, `EMISS`, `NUC_STATUS`, `PET_IMPORTS`, `IEO`, and AEO year-vintages.
@@ -141,7 +169,12 @@ Available bulk datasets include: `ELEC`, `NG`, `PET`, `COAL`, `SEDS`, `STEO`, `T
 
 # TUI
 
-Interactive terminal UI built with [Textual](https://textual.textualize.io/). Browse the EIA dataset tree, view schema summaries, and download datasets with live progress — all from the terminal.
+Interactive terminal UI built with [Textual](https://textual.textualize.io/). Two tabs:
+
+| Tab | Key | What it does |
+|-----|-----|-------------|
+| **API** | `1` | Browse the live EIA v2 API dataset tree; view schema, download datasets |
+| **Bulk** | `2` | Browse locally parsed bulk datasets by category tree; view series metadata |
 
 Install and launch:
 
@@ -149,6 +182,8 @@ Install and launch:
 pip install -e ".[tui]"
 energy-tui
 ```
+
+Navigate with arrow keys + Enter. Press `q` to quit. The Bulk tab requires a dataset to be downloaded and parsed first (`energy bulk-download <ID>` then `energy bulk-parse <ID>`).
 
 ---
 
@@ -178,19 +213,22 @@ eia/                Python core — shared by CLI and TUI
   publications.py   Excel publication listing and display
   pub_downloader.py Excel download, parse, Parquet conversion, parse quality
   bulk.py           Bulk manifest fetch and display
+  bulk_downloader.py Bulk ZIP download, NDJSON parse → Parquet, catalog
   storage.py        Storage abstraction (LocalStorage / GCSStorage for Phase 2)
   cli.py            CLI entry point (all commands)
   NOTES.md          Developer notes
 
-tui/                TUI app (Textual) — lazy tree, schema panel, download queue
+tui/                TUI app (Textual) — API tab (lazy tree, schema, download queue) + Bulk tab (category browser)
 r/                  R/Shiny analysis app
   NOTES.md          Developer notes
 
 data/               Local dataset storage (gitignored)
   catalog.json      API dataset manifest
   pub_catalog.json  Excel publication manifest
+  bulk_catalog.json Bulk dataset manifest
   electricity/      API datasets
   publications/     Excel publication Parquet files
+  bulk/             Bulk datasets (raw.ndjson + parsed Parquet files)
 
 EXCEL-FILES.md      Excel publication documentation
 BULK.md             Bulk file documentation
@@ -204,4 +242,4 @@ TESTING.md          Test design and results
 |--------|--------|-----|----------|
 | API v2 | JSON → Parquet | `energy download <path>` | All EIA series; queryable by facet/frequency |
 | Electric Power Annual | Excel → Parquet | `energy pub-download epa_XX_XX` | Electricity only; 179 annual summary tables |
-| Bulk files | ZIP (JSON) | listed by `energy bulk-list` | All major EIA topics; complete history |
+| Bulk files | ZIP → NDJSON → Parquet | `energy bulk-download` + `bulk-parse` | All major EIA topics; complete history |

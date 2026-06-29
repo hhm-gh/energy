@@ -7,6 +7,7 @@ from .publications import print_pub_list
 from .pub_catalog import ELECTRICITY_ANNUAL
 from .pub_downloader import download_table, pub_status
 from .bulk import fetch_manifest, print_bulk_list
+from .bulk_downloader import bulk_status, download_bulk, parse_bulk
 
 
 def cmd_inventory(args: argparse.Namespace) -> None:
@@ -97,6 +98,26 @@ def cmd_bulk_list(args: argparse.Namespace) -> None:
     print_bulk_list(datasets, expand_aeo=args.aeo)
 
 
+def cmd_bulk_download(args: argparse.Namespace) -> None:
+    try:
+        download_bulk(args.id)
+    except (ValueError, Exception) as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
+
+
+def cmd_bulk_parse(args: argparse.Namespace) -> None:
+    try:
+        parse_bulk(args.id)
+    except (ValueError, Exception) as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
+
+
+def cmd_bulk_status(_args: argparse.Namespace) -> None:
+    bulk_status()
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         prog="energy",
@@ -135,6 +156,14 @@ def main() -> None:
     bl = sub.add_parser("bulk-list", help="List EIA bulk download datasets from the live manifest")
     bl.add_argument("--aeo", action="store_true", help="Expand all Annual Energy Outlook year-vintages")
 
+    bd = sub.add_parser("bulk-download", help="Download a bulk dataset ZIP and extract NDJSON")
+    bd.add_argument("id", help="Dataset ID, e.g. 'ELEC'")
+
+    bp = sub.add_parser("bulk-parse", help="Parse downloaded bulk NDJSON into Parquet files")
+    bp.add_argument("id", help="Dataset ID, e.g. 'ELEC'")
+
+    sub.add_parser("bulk-status", help="Show downloaded bulk datasets")
+
     args = parser.parse_args()
 
     if args.command == "inventory":
@@ -153,6 +182,12 @@ def main() -> None:
         cmd_pub_status(args)
     elif args.command == "bulk-list":
         cmd_bulk_list(args)
+    elif args.command == "bulk-download":
+        cmd_bulk_download(args)
+    elif args.command == "bulk-parse":
+        cmd_bulk_parse(args)
+    elif args.command == "bulk-status":
+        cmd_bulk_status(args)
 
 
 if __name__ == "__main__":
